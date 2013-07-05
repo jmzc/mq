@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:amq="http://activemq.apache.org/schema/core" xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core-5.2.0.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd
+	http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-2.5.xsd">
+
+	<!-- enables annotation based configuration -->
+	<context:annotation-config />
+	<!-- scans for annotated classes in the com.company package -->
+	<context:component-scan base-package="com.prosodie.mq.example2" />
+	
+	 
+	<bean id="connectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" destroy-method="stop">
+    <property name="connectionFactory">
+      <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+        <!--  
+        <property name="brokerURL" value="tcp://localhost:61616"/>
+         -->
+        <property name="brokerURL" value="failover:(tcp://localhost:61616,tcp://localhost:61617)?randomize=false"/>
+        <property name="useAsyncSend" value="true"/>
+        <property name="alwaysSessionAsync" value="false"/>
+      </bean>
+    </property>
+  </bean>
+  
+
+	<!--
+	Instances of the JmsTemplate class are thread-safe once configured. 
+	This is important because it means that you can configure a single instance of a JmsTemplate and then safely inject 
+	this shared reference into multiple collaborators. To be clear, the JmsTemplate is stateful, in that it maintains a reference to a ConnectionFactory, 
+	but this state is not conversational state. 
+	 -->
+	 
+	<bean id="jmsTemplate" class="org.springframework.jms.core.JmsTemplate">
+		<constructor-arg ref="connectionFactory" />
+		<property name="pubSubDomain" value="true"/>
+		<property name="defaultDestinationName" value="OLSMS.TO.C2C"/>
+		<!-- QoS -->
+		<!-- 
+		<property name="explicitQosEnabled" value="true"/>
+		<property name="timeToLive" value="10000"/>
+		 -->
+		
+		
+	</bean>
+	
+
+	<bean id="jmsContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer" scope="prototype">
+		<property name="connectionFactory" ref="connectionFactory"/>
+		<property name="destinationName" value="OLSMS.TO.C2C"/>
+		<property name="pubSubDomain" value="true"/>
+		<property name="autoStartup" value="false"/>
+	</bean>
+	
+</beans>
